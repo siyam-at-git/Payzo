@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayZo</title>
+
+<!-- 🔥 Telegram Mini App -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<style>
+:root{--radius:16px;}
+*{-webkit-tap-highlight-color:transparent;outline:none;user-select:text;box-sizing:border-box}
+body{margin:0;font-family:system-ui;background:#f5f6fa}
+
+/* HEADER */
+.header{margin:12px;padding:14px;background:#fff;border-radius:16px;display:flex;gap:12px;align-items:center;box-shadow:0 4px 15px rgba(0,0,0,0.05)}
+.logo{width:45px;height:45px;border-radius:12px;background:linear-gradient(135deg,#5b5cf0,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.title{font-weight:700}
+.subtitle{font-size:12px;color:#777}
+
+/* SEARCH */
+.search{padding:10px}
+.search input{width:100%;padding:12px;border:none;border-radius:16px;background:#fff}
+
+/* GRID */
+#offers{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:10px}
+
+/* CARD */
+.card{background:#fff;padding:14px;border-radius:16px;box-shadow:0 3px 10px rgba(0,0,0,0.05)}
+.badge{font-size:11px;padding:4px 8px;border-radius:6px;color:#fff;margin-bottom:8px}
+.gp{background:#00aaff}
+.airtel{background:#ff0033}
+.bl{background:#ff8800}
+.robi{background:#ff3b30}
+.skitto{background:#ff2d8d}
+
+.price-box{margin-top:10px;padding:10px;background:#e5e7eb;border-radius:16px;text-align:center;font-weight:700}
+
+/* POPUP */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.25);display:none;justify-content:center;align-items:center}
+.popup{background:#fff;width:90%;max-width:320px;padding:20px;border-radius:16px}
+.popup input{width:100%;padding:12px;margin-top:12px;border-radius:16px;border:1px solid #ddd}
+.btn{margin-top:12px;width:100%;padding:12px;border:none;border-radius:16px;background:#5b5cf0;color:#fff}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<div class="logo">PZ</div>
+<div>
+<div class="title">PayZo</div>
+<div class="subtitle">Telegram Mini App</div>
+</div>
+</div>
+
+<div class="search">
+<input id="search" placeholder="Search..." onkeyup="render()">
+</div>
+
+<div id="offers"></div>
+
+<div class="overlay" id="overlay">
+<div class="popup">
+<h3>Order</h3>
+<p id="pDetails"></p>
+<input id="phone" placeholder="01XXXXXXXXX" maxlength="11" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+<button class="btn" onclick="send()">Order Now</button>
+</div>
+</div>
+
+<script>
+
+// 🔥 Telegram Init
+let tg = window.Telegram.WebApp;
+tg.expand();
+
+let db={
+ gp:"https://raw.githubusercontent.com/siyam-at-git/offers-data/main/Grameenphone.txt"
+};
+
+let all=[],selectedOffer="",currentSIM="gp";
+
+function generateOrderID(){
+ return "PZ"+Math.floor(100000 + Math.random()*900000);
+}
+
+async function load(){
+ let res=await fetch(db[currentSIM]);
+ let text=await res.text();
+ all=[];
+
+ text.split("\n").forEach(l=>{
+  if(l.includes("|")){
+   let [title,validity,price]=l.split("|");
+   all.push({title,validity,price});
+  }
+ });
+
+ render();
+}
+
+function render(){
+ let s=document.getElementById("search").value.toLowerCase();
+ let html="";
+
+ all.forEach(o=>{
+  if(o.title.toLowerCase().includes(s)){
+   html+=`
+   <div class="card" onclick="openPopup('${o.title}','${o.price}')">
+   <div class="badge gp">GP</div>
+   <div>${o.title}</div>
+   <div class="price-box">${o.price}</div>
+   </div>`;
+  }
+ });
+
+ document.getElementById("offers").innerHTML=html;
+}
+
+function openPopup(t,p){
+ selectedOffer=t+" "+p;
+ document.getElementById("pDetails").innerText=t+" - "+p;
+ document.getElementById("overlay").style.display="flex";
+}
+
+// 🔥 SEND (Mini App + fallback)
+function send(){
+ let phone=document.getElementById("phone").value;
+
+ if(phone.length!==11){
+  alert("Invalid number");
+  return;
+ }
+
+ let msg=
+ "📦 PayZo Order\n"+
+ "🆔 "+generateOrderID()+"\n"+
+ "🎁 "+selectedOffer+"\n"+
+ "📞 "+phone;
+
+ // Mini App send
+ if(tg && tg.sendData){
+  tg.sendData(msg);
+  tg.close();
+ }else{
+  // fallback Telegram link
+  window.open("https://t.me/Siyam.at.telegram?text="+encodeURIComponent(msg));
+ }
+}
+
+document.getElementById("overlay").onclick=e=>{
+ if(e.target.id=="overlay") e.target.style.display="none";
+};
+
+load();
+
+</script>
+
+</body>
+</html>
